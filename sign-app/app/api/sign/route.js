@@ -1,3 +1,10 @@
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: '10mb',
+    },
+  },
+}
 import { supabaseAdmin } from '../../../lib/supabase'
 
 export async function POST(request) {
