@@ -1,11 +1,6 @@
-export const config = {
-  api: {
-    bodyParser: {
-      sizeLimit: '10mb',
-    },
-  },
-}
-import { supabaseAdmin } from '../../../lib/supabase'
+export const runtime = 'nodejs'
+
+import { supabaseAdmin } from '../../lib/supabase'
 
 export async function POST(request) {
   try {
@@ -15,7 +10,6 @@ export async function POST(request) {
       return Response.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
-    // 1. Fetch agreement
     const { data: agreement, error: fetchErr } = await supabaseAdmin
       .from('agreements')
       .select('*')
@@ -27,7 +21,6 @@ export async function POST(request) {
       return Response.json({ error: 'Agreement not found or already signed' }, { status: 404 })
     }
 
-    // 2. Upload PDF to Supabase Storage
     let pdfUrl = null
     if (pdfBase64) {
       const base64Data = pdfBase64.split(',')[1]
@@ -48,7 +41,6 @@ export async function POST(request) {
       }
     }
 
-    // 3. Mark agreement as signed
     const signedAt = new Date().toISOString()
     const { error: updateErr } = await supabaseAdmin
       .from('agreements')
@@ -59,7 +51,6 @@ export async function POST(request) {
       return Response.json({ error: updateErr.message }, { status: 500 })
     }
 
-    // 4. Fire Zapier webhook (non-blocking — don't await)
     const payload = {
       event:        'agreement_signed',
       agreement_id: agreement.id,
