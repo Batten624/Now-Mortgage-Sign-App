@@ -193,6 +193,9 @@ export default function SigningClient({ agreement }) {
           <p style={{ fontSize: 11, color: '#b0b8c4', textAlign: 'center', marginTop: 16 }}>
             NOW Mortgage · Operating under license of Dependable Mortgage Solutions Corp. · RECA Licensed
           </p>
+          <p style={{ fontSize: 10, color: '#d0d5dd', textAlign: 'center', marginTop: 8, fontFamily: 'DM Mono, monospace', letterSpacing: 0.5 }}>
+            Document ID: {agreement.token}
+          </p>
         </div>
       </div>
     </div>
