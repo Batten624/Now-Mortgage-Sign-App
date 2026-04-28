@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic'
 
-import { supabaseAdmin } from '@/lib/supabase'
+import { supabaseAdmin } from '../../lib/supabase'
 import SigningClient from './SigningClient'
 
 export default async function SignPage({ params }) {
