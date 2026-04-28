@@ -1,6 +1,6 @@
 export const runtime = 'nodejs'
 
-import { supabaseAdmin } from '../../lib/supabase'
+import { supabaseAdmin } from '../../../lib/supabase'
 
 export async function POST(request) {
   try {
