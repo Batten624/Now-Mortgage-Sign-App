@@ -174,16 +174,20 @@ export async function POST(request) {
         borrower1_name:       agreement.borrower1_name,
         NEXT_PUBLIC_APP_URL:  process.env.NEXT_PUBLIC_APP_URL,
       }))
-      fetch(process.env.ZAPIER_COBORROWER_NOTIFY, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          borrower2_name:       agreement.borrower2_name,
-          borrower2_email:      agreement.borrower2_email,
-          borrower2_signing_url: borrower2Url,
-          borrower1_name:       agreement.borrower1_name,
-        }),
-      }).catch(err => console.error('Zapier co-borrower notify failed:', err))
+      try {
+        await fetch(process.env.ZAPIER_COBORROWER_NOTIFY, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            borrower2_name:        agreement.borrower2_name,
+            borrower2_email:       agreement.borrower2_email,
+            borrower2_signing_url: borrower2Url,
+            borrower1_name:        agreement.borrower1_name,
+          }),
+        })
+      } catch (err) {
+        console.error('Zapier co-borrower notify failed:', err)
+      }
     }
 
     // If fully signed — notify Zapier with completion
@@ -198,11 +202,15 @@ export async function POST(request) {
         zapPayload.borrower2_name  = agreement.borrower2_name
         zapPayload.borrower2_email = agreement.borrower2_email
       }
-      fetch(process.env.ZAPIER_AGREEMENT_SIGNED, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(zapPayload),
-      }).catch(err => console.error('Zapier signed notify failed:', err))
+      try {
+        await fetch(process.env.ZAPIER_AGREEMENT_SIGNED, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(zapPayload),
+        })
+      } catch (err) {
+        console.error('Zapier signed notify failed:', err)
+      }
     }
 
     return Response.json({ success: true, pdfUrl, debug: { borrower2_name: agreement.borrower2_name, borrower2_email: agreement.borrower2_email, borrower2_token: agreement.borrower2_token, borrower1_name: agreement.borrower1_name, NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL } })
