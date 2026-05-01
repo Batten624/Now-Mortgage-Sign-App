@@ -115,18 +115,19 @@ export async function POST(request) {
         doc.line(margin, y, pageW - margin, y)
         y += 8
 
-        const addSigBlock = (label, name, email, phone, signedTime) => {
+        const addSigBlock = (label, name, email, phone, signedTime, sigToken) => {
           if (y > 240) { doc.addPage(); y = 20 }
           doc.setFillColor(247, 245, 240)
-          doc.rect(margin, y, contentW, 44, 'F')
+          doc.rect(margin, y, contentW, 52, 'F')
           doc.setDrawColor(232, 227, 218)
-          doc.rect(margin, y, contentW, 44, 'S')
+          doc.rect(margin, y, contentW, 52, 'S')
           y += 8
           addText(label, 11, true, '#0F1F3D')
           addText('Name: ' + name, 10, false, '#0F1F3D')
           addText('Email: ' + email, 10, false, '#0F1F3D')
           addText('Phone: ' + (phone || '-'), 10, false, '#0F1F3D')
-          addText('Signed: ' + new Date(signedTime).toLocaleDateString('en-CA', { year: 'numeric', month: 'long', day: 'numeric' }), 10, false, '#0F1F3D')
+          addText('Signed: ' + new Date(signedTime).toLocaleString('en-CA', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZoneName: 'short' }), 10, false, '#0F1F3D')
+          addText('Signature ID: ' + sigToken, 9, false, '#888888')
           doc.setFont('helvetica', 'bolditalic')
           doc.setFontSize(18)
           doc.setTextColor('#0F1F3D')
@@ -134,11 +135,11 @@ export async function POST(request) {
           y += 14
         }
 
-        addSigBlock('Borrower 1 — Signature', agreement.borrower1_name, agreement.borrower1_email, agreement.borrower1_phone, agreement.borrower1_signed_at || signedAt)
+        addSigBlock('Borrower 1 — Signature', agreement.borrower1_name, agreement.borrower1_email, agreement.borrower1_phone, agreement.borrower1_signed_at || signedAt, agreement.token)
 
         if (hasCoBorrower) {
           y += 6
-          addSigBlock('Borrower 2 — Signature', agreement.borrower2_name, agreement.borrower2_email, agreement.borrower2_phone, signedAt)
+          addSigBlock('Borrower 2 — Signature', agreement.borrower2_name, agreement.borrower2_email, agreement.borrower2_phone, signedAt, agreement.borrower2_token)
         }
 
         const pdfBuffer = Buffer.from(doc.output('arraybuffer'))
