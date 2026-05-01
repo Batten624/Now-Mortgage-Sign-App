@@ -6,19 +6,44 @@ import SigningClient from './SigningClient'
 export default async function SignPage({ params }) {
   const { token } = params
 
-  const { data: agreement } = await supabaseAdmin
+  // Check if token matches borrower1 or borrower2
+  let agreement = null
+  let borrowerNum = 1
+
+  const { data: b1Agreement } = await supabaseAdmin
     .from('agreements')
     .select('*')
     .eq('token', token)
     .single()
 
+  if (b1Agreement) {
+    agreement = b1Agreement
+    borrowerNum = 1
+  } else {
+    const { data: b2Agreement } = await supabaseAdmin
+      .from('agreements')
+      .select('*')
+      .eq('borrower2_token', token)
+      .single()
+
+    if (b2Agreement) {
+      agreement = b2Agreement
+      borrowerNum = 2
+    }
+  }
+
   if (!agreement) {
     return <StatusPage icon="✗" title="Link not found" message="This signing link is invalid. Please contact NOW Mortgage for a new link." />
   }
 
-  if (agreement.status === 'signed') {
+  // Check if this borrower has already signed
+  const alreadySigned = borrowerNum === 1
+    ? !!agreement.borrower1_signed_at
+    : !!agreement.borrower2_signed_at
+
+  if (alreadySigned) {
     return (
-      <StatusPage icon="✓" title="Already signed" message={`This agreement was signed on ${new Date(agreement.signed_at).toLocaleDateString('en-CA', { month: 'long', day: 'numeric', year: 'numeric' })}.`}>
+      <StatusPage icon="✓" title="Already signed" message={`This agreement was already signed. Thank you!`}>
         {agreement.pdf_url && (
           <a href={agreement.pdf_url} target="_blank" rel="noreferrer" style={btnStyle}>
             Download your copy
@@ -28,11 +53,16 @@ export default async function SignPage({ params }) {
     )
   }
 
+  // Borrower 2 can't sign until borrower 1 has signed
+  if (borrowerNum === 2 && !agreement.borrower1_signed_at) {
+    return <StatusPage icon="⏳" title="Waiting on borrower 1" message="The primary borrower needs to sign first. You'll receive an email with your link once they've completed their signature." />
+  }
+
   if (new Date(agreement.expires_at) < new Date()) {
     return <StatusPage icon="⏱" title="Link expired" message="This signing link has expired. Please contact NOW Mortgage for a new one." />
   }
 
-  return <SigningClient agreement={agreement} />
+  return <SigningClient agreement={agreement} borrowerNum={borrowerNum} token={token} />
 }
 
 function StatusPage({ icon, title, message, children }) {
@@ -52,12 +82,6 @@ function StatusPage({ icon, title, message, children }) {
 }
 
 const btnStyle = {
-  display: 'inline-block',
-  padding: '12px 28px',
-  background: '#0F1F3D',
-  color: '#fff',
-  borderRadius: '8px',
-  textDecoration: 'none',
-  fontSize: '14px',
-  fontWeight: 600,
+  display: 'inline-block', padding: '12px 28px', background: '#0F1F3D',
+  color: '#fff', borderRadius: '8px', textDecoration: 'none', fontSize: '14px', fontWeight: 600,
 }
