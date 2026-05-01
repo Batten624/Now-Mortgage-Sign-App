@@ -166,6 +166,14 @@ export async function POST(request) {
     // If borrower 1 signed and there's a co-borrower — notify Zapier to send borrower 2 their link
     if (isBorrower1 && hasCoBorrower) {
       const borrower2Url = `${process.env.NEXT_PUBLIC_APP_URL}/${agreement.borrower2_token}`
+      console.log('DEBUG coborrower notify payload:', JSON.stringify({
+        borrower2_name:       agreement.borrower2_name,
+        borrower2_email:      agreement.borrower2_email,
+        borrower2_token:      agreement.borrower2_token,
+        borrower2_signing_url: borrower2Url,
+        borrower1_name:       agreement.borrower1_name,
+        NEXT_PUBLIC_APP_URL:  process.env.NEXT_PUBLIC_APP_URL,
+      }))
       fetch(process.env.ZAPIER_COBORROWER_NOTIFY, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -197,7 +205,7 @@ export async function POST(request) {
       }).catch(err => console.error('Zapier signed notify failed:', err))
     }
 
-    return Response.json({ success: true, pdfUrl })
+    return Response.json({ success: true, pdfUrl, debug: { borrower2_name: agreement.borrower2_name, borrower2_email: agreement.borrower2_email, borrower2_token: agreement.borrower2_token, borrower1_name: agreement.borrower1_name, NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL } })
 
   } catch (err) {
     console.error('Sign error:', err)
