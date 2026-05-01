@@ -10,25 +10,26 @@ const SIG_FONTS = [
   { label: 'Formal',  font: "'Georgia', serif", style: 'italic' },
 ]
 
-export default function SigningClient({ agreement }) {
-  const [signed1, setSigned1]   = useState(false)
-  const [signed2, setSigned2]   = useState(false)
-  const [sigFont1, setSigFont1] = useState(0)
-  const [sigFont2, setSigFont2] = useState(0)
-  const [casl, setCasl]         = useState(false)
-  const [errors, setErrors]     = useState({})
+export default function SigningClient({ agreement, borrowerNum, token }) {
+  const [signed, setSigned]       = useState(false)
+  const [sigFont, setSigFont]     = useState(0)
+  const [casl, setCasl]           = useState(false)
+  const [errors, setErrors]       = useState({})
   const [submitting, setSubmitting] = useState(false)
-  const [done, setDone]         = useState(false)
-  const [pdfUrl, setPdfUrl]     = useState(null)
+  const [done, setDone]           = useState(false)
+  const [pdfUrl, setPdfUrl]       = useState(null)
 
   const today = new Date().toLocaleDateString('en-CA', { year: 'numeric', month: 'long', day: 'numeric' })
-  const hasBorrower2 = !!agreement.borrower2_name
+
+  const borrowerName  = borrowerNum === 1 ? agreement.borrower1_name  : agreement.borrower2_name
+  const borrowerEmail = borrowerNum === 1 ? agreement.borrower1_email : agreement.borrower2_email
+  const borrowerPhone = borrowerNum === 1 ? agreement.borrower1_phone : agreement.borrower2_phone
+  const hasCoBorrower = !!agreement.borrower2_name
 
   async function handleSubmit() {
     const e = {}
-    if (!signed1)                 e.sig1 = 'Please click to adopt your signature'
-    if (hasBorrower2 && !signed2) e.sig2 = 'Please click to adopt your signature'
-    if (!casl)                    e.casl = 'Please check the consent box to proceed'
+    if (!signed) e.sig = 'Please click to adopt your signature'
+    if (!casl)   e.casl = 'Please check the consent box to proceed'
     setErrors(e)
     if (Object.keys(e).length) return
 
@@ -37,7 +38,7 @@ export default function SigningClient({ agreement }) {
       const res = await fetch('/api/sign', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: agreement.token, caslConsent: casl }),
+        body: JSON.stringify({ token, borrowerNum, caslConsent: casl }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Submission failed')
@@ -58,7 +59,10 @@ export default function SigningClient({ agreement }) {
           <div style={{ width: 60, height: 60, borderRadius: '50%', background: '#d1fae5', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.25rem', fontSize: 28, color: '#065f46' }}>✓</div>
           <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '22px', fontWeight: 700, color: NAVY, marginBottom: '0.75rem' }}>Agreement signed</div>
           <div style={{ fontSize: '14px', color: '#5a6a7a', lineHeight: 1.7, marginBottom: '1.5rem' }}>
-            Thank you, <strong>{agreement.borrower1_name}</strong>. Your signed agreement has been received by NOW Mortgage and a copy has been sent to <strong>{agreement.borrower1_email}</strong>.
+            Thank you, <strong>{borrowerName}</strong>.
+            {borrowerNum === 1 && hasCoBorrower
+              ? ' Your signature has been received. The co-borrower will now receive their signing link.'
+              : ' Your signed agreement has been received by NOW Mortgage.'}
           </div>
           {pdfUrl && (
             <a href={pdfUrl} target="_blank" rel="noreferrer" style={{ display: 'inline-block', padding: '12px 28px', background: NAVY, color: '#fff', borderRadius: '8px', textDecoration: 'none', fontSize: '14px', fontWeight: 600 }}>
@@ -78,7 +82,12 @@ export default function SigningClient({ agreement }) {
         <div style={{ background: NAVY, padding: '2rem 2.5rem', textAlign: 'center' }}>
           <div style={{ color: GOLD, fontSize: 10, letterSpacing: 3, textTransform: 'uppercase', marginBottom: 6, fontFamily: 'DM Mono, monospace' }}>NOW MORTGAGE</div>
           <div style={{ color: 'white', fontFamily: 'Syne, sans-serif', fontSize: 24, fontWeight: 700 }}>Client Agreement</div>
-          <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, marginTop: 8, fontFamily: 'DM Mono, monospace' }}>
+          {hasCoBorrower && (
+            <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, marginTop: 8, fontFamily: 'DM Mono, monospace' }}>
+              Signing as: Borrower {borrowerNum} — {borrowerName}
+            </div>
+          )}
+          <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, marginTop: 6, fontFamily: 'DM Mono, monospace' }}>
             #202 15 Carleton Dr, St. Albert, AB T8N 7K9 · 587-200-6727 · lending@nowmtg.ca
           </div>
         </div>
@@ -128,7 +137,7 @@ export default function SigningClient({ agreement }) {
               <strong>I/We provide consent to NOW Mortgage and/or Dependable Mortgage Solutions Corp. to obtain a credit report for:</strong>
               <div style={{ display: 'flex', gap: 32, marginTop: 8, flexWrap: 'wrap' }}>
                 <div><span style={{ color: '#8a9ab0' }}>Applicant 1: </span><strong>{agreement.borrower1_name}</strong></div>
-                {hasBorrower2 && <div><span style={{ color: '#8a9ab0' }}>Applicant 2: </span><strong>{agreement.borrower2_name}</strong></div>}
+                {hasCoBorrower && <div><span style={{ color: '#8a9ab0' }}>Applicant 2: </span><strong>{agreement.borrower2_name}</strong></div>}
               </div>
             </div>
           </Section>
@@ -137,7 +146,7 @@ export default function SigningClient({ agreement }) {
             By signing this agreement, you consent to receive electronic communications related to your mortgage application, required disclosures, and ongoing updates. You may withdraw this consent at any time.
             <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer', marginTop: 12, fontSize: 14 }}>
               <input type="checkbox" checked={casl} onChange={e => setCasl(e.target.checked)} style={{ marginTop: 3, width: 16, height: 16, flexShrink: 0, accentColor: NAVY }} />
-              <span>I/We agree to receive electronic communications from NOW Mortgage and/or Dependable Mortgage Solutions Corp.</span>
+              <span>I agree to receive electronic communications from NOW Mortgage and/or Dependable Mortgage Solutions Corp.</span>
             </label>
             {errors.casl && <div style={{ color: '#dc2626', fontSize: 12, marginTop: 6 }}>{errors.casl}</div>}
           </Section>
@@ -153,38 +162,20 @@ export default function SigningClient({ agreement }) {
           <div style={{ height: 2, background: GOLD, borderRadius: 2, margin: '8px 0 28px' }} />
 
           <SignatureBlock
-            label="Borrower 1"
-            name={agreement.borrower1_name}
-            email={agreement.borrower1_email}
-            phone={agreement.borrower1_phone}
+            label={hasCoBorrower ? `Borrower ${borrowerNum}` : 'Borrower'}
+            name={borrowerName}
+            email={borrowerEmail}
+            phone={borrowerPhone}
             today={today}
-            signed={signed1}
-            sigFont={SIG_FONTS[sigFont1]}
-            fontIndex={sigFont1}
+            signed={signed}
+            sigFont={SIG_FONTS[sigFont]}
+            fontIndex={sigFont}
             fonts={SIG_FONTS}
-            onSign={() => setSigned1(true)}
-            onUnsign={() => setSigned1(false)}
-            onFontChange={setSigFont1}
-            error={errors.sig1}
+            onSign={() => setSigned(true)}
+            onUnsign={() => setSigned(false)}
+            onFontChange={setSigFont}
+            error={errors.sig}
           />
-
-          {hasBorrower2 && (
-            <SignatureBlock
-              label="Borrower 2"
-              name={agreement.borrower2_name}
-              email={agreement.borrower2_email}
-              phone={agreement.borrower2_phone}
-              today={today}
-              signed={signed2}
-              sigFont={SIG_FONTS[sigFont2]}
-              fontIndex={sigFont2}
-              fonts={SIG_FONTS}
-              onSign={() => setSigned2(true)}
-              onUnsign={() => setSigned2(false)}
-              onFontChange={setSigFont2}
-              error={errors.sig2}
-            />
-          )}
 
           <button onClick={handleSubmit} disabled={submitting} style={{ width: '100%', padding: '16px', marginTop: 8, background: submitting ? '#8a9ab0' : NAVY, color: 'white', border: 'none', borderRadius: 10, fontSize: 16, fontWeight: 700, cursor: submitting ? 'not-allowed' : 'pointer', fontFamily: 'Syne, sans-serif', letterSpacing: 0.3 }}>
             {submitting ? 'Submitting...' : 'Submit signed agreement'}
